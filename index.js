@@ -20,47 +20,48 @@ const io = new Server(server, {
 GameManeger.io = io;
 io.to()
 io.on('connection', socket => {
-    socket.on('start',(data)=>{
-        if(GameManeger.pendingUser){
-            let roomId = GameManeger.addGame(socket,data.ships)
-            io.to(roomId).emit('gameStart',{firstToPlay : GameManeger.pendingUser.socket.id  })
+    socket.on('start', (data) => {
+        if (GameManeger.pendingUser) {
+            let roomId = GameManeger.addGame(socket, data.ships)
+            io.to(roomId).emit('gameStart', { firstToPlay: GameManeger.pendingUser.socket.id })
             GameManeger.pendingUser = null;
             console.log(GameManeger.pendingUser);
 
-        }else{
+        } else {
             console.log("else d")
-            GameManeger.addPendingUser(socket,data.ships,io)
+            GameManeger.addPendingUser(socket, data.ships, io)
         }
-    socket.on('playerMove',(data)=>{
-        let returnObj = GameManeger.attackPlayer(socket.id,data.move)
-        if(returnObj){
-            io.to(returnObj.roomId).emit('attack',returnObj.returnObj)
-            const keys = Object.keys(returnObj.returnObj);
-            if(returnObj.returnObj[keys[0]].destroyedShip.length === 5){
-                io.to(returnObj.roomId).emit('winner',{winner:keys[1]});
-            }else if(returnObj.returnObj[keys[1]].destroyedShip.length === 5){
-                io.to(returnObj.roomId).emit('winner',{winner:keys[0]});
+        socket.on('playerMove', (data) => {
+            let returnObj = GameManeger.attackPlayer(socket.id, data.move)
+            if (returnObj) {
+                io.to(returnObj.roomId).emit('attack', returnObj.returnObj)
+                const keys = Object.keys(returnObj.returnObj);
+                if (returnObj.returnObj[keys[0]].destroyedShip.length === 5) {
+                    GameManeger.removeGame(keys[0]);
+                    io.to(returnObj.roomId).emit('winner', { winner: keys[1] });
+                } else if (returnObj.returnObj[keys[1]].destroyedShip.length === 5) {
+                    GameManeger.removeGame(keys[1]);
+                    io.to(returnObj.roomId).emit('winner', { winner: keys[0] });
+                }
             }
-        }
+        })
+
+
+        socket.on('disconnect', () => {
+            let game = GameManeger.removeGame(socket.id);
+            if (game) {
+                io.to(game.opponentID(socket.id)).emit('winner', { winner: game.opponentID(socket.id), reason: "Opponent Disconnected" })
+            }
+        })
     })
 
-  
-    socket.broadcast
-    socket.on('disconnect',(reason)=>{
-        let game = GameManeger.removeGame(socket.id);
-        if(game){
-            io.to(game.opponentID(socket.id)).emit('winner',{winner:game.opponentID(socket.id),reason:"Opponent Disconnected"})
-        }
-    })
-})
-   
 
     // socket.on('playerMove', (data) => {
     //     const { roomId, move } = data;
-    
+
     //     // Broadcast the move to the other player
     //     socket.to(roomId).emit('opponentMove', move);
-    
+
     //     // Switch timers: Stop current player's timer, start opponent's timer
     //     // Start opponent's timer
     //   });

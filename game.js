@@ -1,3 +1,5 @@
+import { GameManeger } from "./gameManager.js";
+
 export class Game {
 
     constructor(player1, player2, roomId) {
@@ -64,7 +66,7 @@ export class Player {
         this.playerShip = playerShip;
         this.playerGrids = [];
         this.attack = attack;
-        this.timeLeft = 20;
+        this.timeLeft = 300;
         this.io = io
     }
     gotAttack(move) {
@@ -92,9 +94,8 @@ export class Player {
             this.timeLeft--;
             if(this.timeLeft <= 0){
                 clearInterval(this.timer)
-                console.log(this.id)
+                GameManeger.removeGame(this.id);
                 this.io.to(roomId).emit('timeup',{winner:this.id,reason:"Timeout"})
-                console.log(roomId)
             }
         }, 1000);
     }
